@@ -26,6 +26,10 @@ auto main(int /*ununsed*/, const char * /*ununsed*/[], const char **envp)
 
     auto dbconn = msqlinst.connect_unique(conninfo);
 
+    /**
+     * @brief Example with prepared sql statement
+     *
+     */
     {
         uint64_t id = 1;
 
@@ -36,15 +40,39 @@ auto main(int /*ununsed*/, const char * /*ununsed*/[], const char **envp)
 
         auto result = MysqlRAII::execute_preparedquery(prepared_query);
 
-        if (result->rowsCount() == 0)
-        {
+        if (result->rowsCount() == 0) {
             std::cout << "Empty query" << std::endl;
         }
 
-        while (result->next())
-        {
-            std::cout << "result" << std::endl;
+        sql::ResultSetMetaData *metadata = result->getMetaData();
+
+        for (unsigned int i = 1; i < metadata->getColumnCount(); i++) {
+            std::cout << "|\t" << metadata->getColumnLabel(i);
         }
+
+        std::cout << std::endl;
+
+        while (result->next()) {
+            for (unsigned int i = 1; i < metadata->getColumnCount(); i++) {
+                std::cout << "|\t" << result->getString(i);
+            }
+        }
+
+        std::cout << std::endl;
+    }
+
+    /**
+     * @brief Prepared insert query
+     *
+     */
+    {
+        auto prepared_insert = MysqlRAII::make_prepstatement(
+            dbconn, "INSERT INTO test (name, created_at, updated_at) VALUES "
+                    "(?, NOW(), NOW());");
+
+        prepared_insert->setString(1, "some name"); // Sets the first '?' value
+
+        prepared_insert->execute();
     }
 
     return 0;
